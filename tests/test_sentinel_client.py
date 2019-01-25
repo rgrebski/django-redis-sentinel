@@ -1,3 +1,4 @@
+from django.test import override_settings
 from pretend import stub
 import pytest
 
@@ -112,6 +113,21 @@ def test_connect_read(client, monkeypatch, MockSentinel):
     assert client.connect(False, MockSentinel) in expected_results
 
 
+def test_close_does_nothing_by_default(client, monkeypatch):
+    stub_client = stub(connection_pool=stub(_available_connections=[
+        stub(disconnect=lambda: True),
+        stub(disconnect=lambda: True),
+    ]))
+    monkeypatch.setattr(client, "_client_read", stub_client)
+    monkeypatch.setattr(client, "_client_write", stub_client)
+
+    client.close()
+
+    assert client._client_write is stub_client
+    assert client._client_read is stub_client
+
+
+@override_settings(DJANGO_REDIS_CLOSE_CONNECTION=True)
 def test_close_read(client, monkeypatch):
     stub_client = stub(connection_pool=stub(_available_connections=[
         stub(disconnect=lambda: True),
@@ -126,6 +142,7 @@ def test_close_read(client, monkeypatch):
     assert client._client_read is None
 
 
+@override_settings(DJANGO_REDIS_CLOSE_CONNECTION=True)
 def test_close_write(client, monkeypatch):
     stub_client = stub(connection_pool=stub(_available_connections=[
         stub(disconnect=lambda: True),
@@ -140,6 +157,7 @@ def test_close_write(client, monkeypatch):
     assert client._client_read is None
 
 
+@override_settings(DJANGO_REDIS_CLOSE_CONNECTION=True)
 def test_close_both(client, monkeypatch):
     stub_client = stub(connection_pool=stub(_available_connections=[
         stub(disconnect=lambda: True),
